@@ -166,16 +166,17 @@ func testFile(path string, opts options) testInfo {
 
 func outputResult(path string, info testInfo, opts options) {
 	if opts.output0 {
-		// output positives to stdout (NUL delimited), errors to stderr (NL delimited)
+		// output positives to stdout (NUL delimited)
 		if info.filenameOk && info.contentOk {
 			fmt.Printf("%s\000", path)
 		}
 	} else {
-		// output positives and errors to stdout (NL delimited)
+		// output positives to stdout (newline delimited)
 		if info.filenameOk && info.contentOk {
 			fmt.Printf("%s\n", path)
 		}
 	}
+	// output errors to stderr (always newline delimited)
 	if info.contentErr != nil && !opts.quiet {
 		fmt.Fprintf(os.Stderr, "error: %s: %s\n", path, info.contentErr)
 	}
@@ -192,6 +193,7 @@ func consumeFilesFromStdin(opts options) error {
 	s := bufio.NewScanner(bufio.NewReader(os.Stdin))
 
 	if opts.input0 {
+		// split on NUL, skipping empty strings
 		s.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			for i, j := 0, 0; i < len(data); i++ {
 				if data[i] == '\000' {
@@ -231,6 +233,8 @@ func main() {
 		os.Exit(0)
 	}
 
+	// if any files are specified as arguments, ignore anything piped in
+	// (same behavior as tools like grep)
 	if len(opts.files) > 0 {
 		err := consumeFilesFromCommandLine(opts)
 		if err != nil {
@@ -242,4 +246,5 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 		}
 	}
+	os.Exit(0)
 }

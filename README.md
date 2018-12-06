@@ -1,12 +1,24 @@
 # AppleDouble
 
-Assists in the removal of AppleDouble files from non-mac filesystems.  
-
-Intended to be used in conjunction with `find`, `appledouble` filters the results of `find` for only those files who's content indicates they are actually AppleDouble formatted files, thereby reducing the likelihood of a false positive over using `find` alone.
+Assists in the removal of AppleDouble files from non-mac filesystems.  Intended to be used in conjunction with `find`, `appledouble` filters for only actual AppleDouble files (by checking their contents), thereby reducing the likelihood of a false positive over using `find` alone.
 
 Specifically, `appledouble` filters for files that:
 1. have names prefixed with "`._`".
 2. have, as the first 4 bytes of content, the magic sentinal value `0x00051607`.
+
+## Examples
+
+Remove all AppleDouble files on the filesystem (on mac, omit the `-r` xargs option):
+```
+find / -type f -name '._*' -print0 | appledouble -0 -print0 | xargs -0 -r rm
+```
+
+One might combine this with the following for a comprehensive means of purging all the crappy files Mac OSX deems necessary to liberally spray all over your nice clean non-mac filesystem (run regularly from cron!):
+```
+find / -type d -name '.TemporaryItems' -print0 | xargs -r -0 rm
+find / -type f -name '.DS_Store' -print0 | xargs -r -0 rm
+find / -type f -name '._*' -print0 | appledouble -0 -print0 | xargs -r -0 rm
+```
 
 ## Usage
 
@@ -37,27 +49,7 @@ You can separately control how filenames are delimited in both the input and out
 * **-printn** : delimit with `"\n"` (default). Specify for human readable console output, or when using xargs *without* its `-0` option.
 * **-print0** : delimit with `"\0"` (nul). Specify when using with xarg's `-0` option.
 
-> **IMPORTANT**: whilst using newline delimiters may work in most cases, you really should be using `"\0"` delimiting everywhere when in scripts or automated processes to ensure odd filenames don't break things.  This means: using find's `-print0`, appledouble's `-0` and `-print0`, and xarg's `-0` options, as per the example below.
-
-## Examples
-
-Remove all AppleDouble files on the filesystem (on mac, omit the `-r` xargs option):
-```
-find / -type f -name '._*' -print0 | appledouble -0 -print0 | xargs -0 -r rm
-```
-
-One might combine this with the following for a comprehensive means of purging all the crappy files Mac OSX deems necessary to liberally spray all over your nice clean non-mac filesystem (run regularly from cron!):
-```
-find / -type d -name '.TemporaryItems' -print0 | xargs -r -0 rm
-find / -type f -name '.DS_Store' -print0 | xargs -r -0 rm
-find / -type f -name '._*' -print0 | appledouble -0 -print0 | xargs -r -0 rm
-```
-
-## Warning
-
-Not all AppleDouble files are completely useless and only good for deletion. Although I personally have not encountered situations where I need any of the data in these files, your situation may be different. You should carefully look into whether removal of some or all of these files will impact you.  
-
-Please log an issue if you know of cases where it's important to keep these files.  We might be able to add a (configurable?) exclusion.
+> **IMPORTANT**: whilst using newline delimiters may work in most cases, you really should be using `"\0"` delimiting everywhere when in scripts or automated processes to ensure odd filenames don't break things.  This means: using find's `-print0`, appledouble's `-0` and `-print0`, and xarg's `-0` options, as per the example above.
 
 ## Installation
 
@@ -69,6 +61,12 @@ $ make
 $ sudo make install
 ```
 This places the `appledouble` binary into `/usr/local/bin` (edit the Makefile if you want to put it somewhere else). Ensure whatever install location you use is in the path.
+
+## Warning
+
+Not all AppleDouble files are completely useless and only good for deletion. Although I personally have not encountered situations where I need any of the data in these files, your situation may be different. You should carefully look into whether removal of some or all of these files will impact you.  
+
+Please log an issue if you know of cases where it's important to keep these files.  We might be able to add a (configurable?) exclusion.
 
 ## License
 

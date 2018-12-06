@@ -107,15 +107,16 @@ func parseArgs() (options, error) {
 }
 
 func help() {
-	fmt.Println("usage: appledouble [options] [file ...]")
+	fmt.Println("usage: appledouble [options] [--] [file ...]")
 	fmt.Println("   -h, --help     Display this help text")
 	fmt.Println("   -v, --version  Display version information")
-	fmt.Println("   -d, --debug    Display debug information when reading from stdin")
+	// fmt.Println("   -d, --debug    Display debug information when reading from stdin")
 	fmt.Println("   -q, --quiet    Do not print errors to stderr")
 	fmt.Println("   -0             Accept NUL delimitered input from stdin (compatible with find's -print0)")
 	fmt.Println("   -n             Accept newline delimitered input from stdin")
 	fmt.Println("   -print0        Output NUL delimitered results to stdout (compatible with xarg's -0)")
 	fmt.Println("   -printn        Output newline delimited results to stdout")
+	fmt.Println("   --             Interpret all following arguments as files, not options")
 }
 
 func version() {

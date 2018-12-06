@@ -23,16 +23,16 @@ find / -type f -name '._*' -print0 | appledouble -0 -print0 | xargs -r -0 rm
 ## Usage
 
 ```
-$ ./appledouble --help
-usage: appledouble [options] [file ...]
+$ appledouble --help
+usage: appledouble [options] [--] [file ...]
    -h, --help     Display this help text
    -v, --version  Display version information
-   -d, --debug    Display debug information when reading from stdin
    -q, --quiet    Do not print errors to stderr
    -0             Accept NUL delimitered input from stdin (compatible with find's -print0)
    -n             Accept newline delimitered input from stdin
    -print0        Output NUL delimitered results to stdout (compatible with xarg's -0)
    -printn        Output newline delimited results to stdout
+   --             Interpret all following arguments as files, not options
 ```
 
 You can separately control how filenames are delimited in both the input and output, to suit the tools or situations you're using `appledouble` in. Failure to use the correct delimiting will result in `appledouble` failing to understand the input, or the other tools failing to understand the output of `appledouble`.

@@ -4,7 +4,7 @@ Assists in the removal of AppleDouble files from non-mac filesystems.  Intended 
 
 Specifically, `appledouble` filters for files that:
 1. have names prefixed with "`._`".
-2. have, as the first 4 bytes of content, the magic sentinal value `0x00051607`.
+2. have, as the first 4 bytes of content, the magic sentinel value `0x00051607`.
 
 ## Examples
 

@@ -15,7 +15,12 @@ type options struct {
 	help    bool
 	debug   bool
 	version bool
+	input0  bool
+	inputn  bool
 	files   []string
+	output0 bool
+	outputn bool
+	quiet   bool
 }
 
 type testInfo struct {
@@ -29,7 +34,12 @@ func parseArgs() (options, error) {
 		help:    false,
 		debug:   false,
 		version: false,
+		input0:  false,
+		inputn:  false,
 		files:   []string{},
+		output0: false,
+		outputn: false,
+		quiet:   false,
 	}
 
 	endOpts := false
@@ -47,6 +57,8 @@ func parseArgs() (options, error) {
 					opts.version = true
 				} else if arg == "--debug" {
 					opts.debug = true
+				} else if arg == "--quiet" {
+					opts.quiet = true
 				} else {
 					return opts, fmt.Errorf("unrecognized option: %s", arg)
 				}
@@ -57,6 +69,16 @@ func parseArgs() (options, error) {
 					opts.version = true
 				} else if arg == "-d" {
 					opts.debug = true
+				} else if arg == "-q" {
+					opts.quiet = true
+				} else if arg == "-0" {
+					opts.input0 = true
+				} else if arg == "-n" {
+					opts.inputn = true
+				} else if arg == "-print0" {
+					opts.output0 = true
+				} else if arg == "-printn" {
+					opts.outputn = true
 				} else {
 					return opts, fmt.Errorf("unrecognized option: %s", arg)
 				}
@@ -68,6 +90,19 @@ func parseArgs() (options, error) {
 		}
 	}
 
+	if opts.inputn && opts.input0 {
+		return opts, fmt.Errorf("options -0 and -n cannot be used together")
+	}
+	if opts.outputn && opts.output0 {
+		return opts, fmt.Errorf("options -print0 and -printn cannot be used together")
+	}
+	if !opts.input0 && !opts.inputn {
+		opts.inputn = true
+	}
+	if !opts.output0 && !opts.outputn {
+		opts.outputn = true
+	}
+
 	return opts, nil
 }
 
@@ -76,10 +111,15 @@ func help() {
 	fmt.Println("   -h, --help     Display this help text")
 	fmt.Println("   -v, --version  Display version information")
 	fmt.Println("   -d, --debug    Display debug information when reading from stdin")
+	fmt.Println("   -q, --quiet    Do not print errors to stderr")
+	fmt.Println("   -0             Accept NUL delimitered input from stdin (compatible with find's -print0)")
+	fmt.Println("   -n             Accept newline delimitered input from stdin")
+	fmt.Println("   -print0        Output NUL delimitered results to stdout (compatible with xarg's -0)")
+	fmt.Println("   -printn        Output newline delimited results to stdout")
 }
 
 func version() {
-	fmt.Println("appledouble ", VERSION)
+	fmt.Printf("appledouble %s\n", VERSION)
 }
 
 func testFileName(path string) bool {
@@ -119,57 +159,55 @@ func testFile(path string, opts options) testInfo {
 		info.contentErr = err
 		return info
 	}
-	info.contentOk = true
+	info.contentOk = ok
 
 	return info
 }
 
-// Outputs results suitable for console (result per line, filename:result format, positives and errors only)
-func outputForConsole(path string, info testInfo) {
-	if info.filenameOk && info.contentOk {
-		fmt.Println(path, ": AppleDouble")
-	} else if info.contentErr != nil {
-		fmt.Println(path, ": error - ", info.contentErr)
+func outputResult(path string, info testInfo, opts options) {
+	if opts.output0 {
+		// output positives to stdout (NUL delimited), errors to stderr (NL delimited)
+		if info.filenameOk && info.contentOk {
+			fmt.Printf("%s\000", path)
+		}
+	} else {
+		// output positives and errors to stdout (NL delimited)
+		if info.filenameOk && info.contentOk {
+			fmt.Printf("%s\n", path)
+		}
+	}
+	if info.contentErr != nil && !opts.quiet {
+		fmt.Fprintf(os.Stderr, "error: %s: %s\n", path, info.contentErr)
 	}
 }
 
-// Outputs reuslts suitable for passing to xargs (nul delimited, positives only, errors to stderr)
-func outputDelimited(path string, info testInfo) {
-	if info.filenameOk && info.contentOk {
-		fmt.Print(path, "\000")
-	} else if info.contentErr != nil {
-		fmt.Fprintln(os.Stderr, path, ": error - ", info.contentErr)
-	}
-}
-
-// Consumes input files from options (command line args)
-func consumeOptions(opts options) error {
+func consumeFilesFromCommandLine(opts options) error {
 	for _, path := range opts.files {
-		outputForConsole(path, testFile(path, opts))
+		outputResult(path, testFile(path, opts), opts)
 	}
 	return nil
 }
 
-// Consumes input files from stdin (delimited by NULs)
-func consumeStdin(opts options) error {
-	nulSplitter := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		for i, j := 0, 0; i < len(data); i++ {
-			if data[i] == '\000' {
-				if i-j > 0 {
-					return i + 1, data[j:i], nil
-				}
-				j = i + 1
-			}
-		}
-		return 0, data, bufio.ErrFinalToken
-	}
-
+func consumeFilesFromStdin(opts options) error {
 	s := bufio.NewScanner(bufio.NewReader(os.Stdin))
-	s.Split(nulSplitter)
+
+	if opts.input0 {
+		s.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+			for i, j := 0, 0; i < len(data); i++ {
+				if data[i] == '\000' {
+					if i-j > 0 {
+						return i + 1, data[j:i], nil
+					}
+					j = i + 1
+				}
+			}
+			return 0, data, bufio.ErrFinalToken
+		})
+	}
 
 	for s.Scan() {
 		path := s.Text()
-		outputDelimited(path, testFile(path, opts))
+		outputResult(path, testFile(path, opts), opts)
 	}
 
 	err := s.Err()
@@ -194,12 +232,12 @@ func main() {
 	}
 
 	if len(opts.files) > 0 {
-		err := consumeOptions(opts)
+		err := consumeFilesFromCommandLine(opts)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
 	} else {
-		err := consumeStdin(opts)
+		err := consumeFilesFromStdin(opts)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}

@@ -35,18 +35,18 @@ usage: appledouble [options] [file ...]
    -printn        Output newline delimited results to stdout
 ```
 
-Appledouble's core function is to input a list of one or more files, then produce a list of output files being those of the input that actually are AppleDouble files (as per the criteria mentioned above).  
+Appledouble's core function is to input a list of one or more files, then output a filtered list of files, being those that actually are AppleDouble files (as per the criteria mentioned above).  
 
-You can separately control how filenames are delimited in both the input and output lists, to suit the tools or situations you're using `appledouble` with. Failure to use the correct delimiting will result in `appledouble` failing to understand the list being inputted, or the other tool's failure to understand `appledouble`'s output.
+You can separately control how filenames are delimited in both the input and output lists, to suit the tools or situations you're using `appledouble` in. Failure to use the correct delimiting will result in `appledouble` failing to understand the input, or the other tools failing to understand `appledouble`'s output.
 
 **INPUT**
 
-* **-n** : delimit with `"\n"` (default). Specify when typing input manually in the console, or when using find's `-print` option.
+* **-n** : delimit with `"\n"` (default). Specify when typing in the console, or when using find's `-print` option.
 * **-0** : delimit with `"\0"` (nul). Specify when using find's `-print0` option.
 
 **OUTPUT**
 
-* **-printn** : delimit with `"\n"` (default). Specify for human readable console output, or when using xargs *without* its `-0` option.
+* **-printn** : delimit with `"\n"` (default). For readable console output, or when using xargs *without* its `-0` option.
 * **-print0** : delimit with `"\0"` (nul). Specify when using with xarg's `-0` option.
 
 > **IMPORTANT**: whilst using newline delimiters may work in most cases, you really should be using `"\0"` delimiting everywhere when in scripts or automated processes to ensure odd filenames don't break things.  This means: using find's `-print0`, appledouble's `-0` and `-print0`, and xarg's `-0` options, as per the example above.

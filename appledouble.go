@@ -9,11 +9,10 @@ import (
 	"strings"
 )
 
-const VERSION = "0.0.2"
+const VERSION = "0.0.3"
 
 type options struct {
 	help    bool
-	debug   bool
 	version bool
 	input0  bool
 	inputn  bool
@@ -32,7 +31,6 @@ type testInfo struct {
 func parseArgs() (options, error) {
 	opts := options{
 		help:    false,
-		debug:   false,
 		version: false,
 		input0:  false,
 		inputn:  false,
@@ -55,8 +53,6 @@ func parseArgs() (options, error) {
 					opts.help = true
 				} else if arg == "--version" {
 					opts.version = true
-				} else if arg == "--debug" {
-					opts.debug = true
 				} else if arg == "--quiet" {
 					opts.quiet = true
 				} else {
@@ -67,8 +63,6 @@ func parseArgs() (options, error) {
 					opts.help = true
 				} else if arg == "-v" {
 					opts.version = true
-				} else if arg == "-d" {
-					opts.debug = true
 				} else if arg == "-q" {
 					opts.quiet = true
 				} else if arg == "-0" {
@@ -110,7 +104,6 @@ func help() {
 	fmt.Println("usage: appledouble [options] [--] [file ...]")
 	fmt.Println("   -h, --help     Display this help text")
 	fmt.Println("   -v, --version  Display version information")
-	// fmt.Println("   -d, --debug    Display debug information when reading from stdin")
 	fmt.Println("   -q, --quiet    Do not print errors to stderr")
 	fmt.Println("   -0             Accept NUL delimitered input from stdin (compatible with find's -print0)")
 	fmt.Println("   -n             Accept newline delimitered input from stdin")
@@ -196,15 +189,18 @@ func consumeFilesFromStdin(opts options) error {
 	if opts.input0 {
 		// split on NUL, skipping empty strings
 		s.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-			for i, j := 0, 0; i < len(data); i++ {
+			for i := 0; i < len(data); i++ {
 				if data[i] == '\000' {
-					if i-j > 0 {
-						return i + 1, data[j:i], nil
+					if i == 0 {
+						return i + 1, nil, nil // skip empty token
 					}
-					j = i + 1
+					return i + 1, data[:i], nil // non empty token
 				}
 			}
-			return 0, data, bufio.ErrFinalToken
+			if atEOF {
+				return 0, data, bufio.ErrFinalToken // final token
+			}
+			return 0, nil, nil // no delimiter; retry with more data
 		})
 	}
 

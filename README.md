@@ -1,6 +1,6 @@
 # AppleDouble
 
-Assists in the removal of AppleDouble files from non-mac filesystems.  Intended to be used in conjunction with `find`, `appledouble` filters for only actual AppleDouble files (by checking their contents), thereby reducing the likelihood of a false positive over using `find` alone.
+Assists in the removal of AppleDouble files from non-macOS filesystems.  Intended to be used in conjunction with `find`, `appledouble` filters for only actual AppleDouble files (by checking their contents), thereby reducing the likelihood of a false positive over using `find` alone.
 
 Specifically, `appledouble` filters for files that:
 1. have names prefixed with "`._`".
@@ -8,12 +8,12 @@ Specifically, `appledouble` filters for files that:
 
 ## Examples
 
-Remove all AppleDouble files on the filesystem (on mac, omit the `-r` xargs option):
+Remove all AppleDouble files on the filesystem (on macOS, omit the `-r` xargs option):
 ```
 find / -type f -name '._*' -print0 | appledouble -0 -print0 | xargs -0 -r rm
 ```
 
-One might combine this with the following for a comprehensive means of purging all the crappy files Mac OSX deems necessary to liberally spray all over your nice clean non-mac filesystem (run regularly from cron!):
+One might combine this with the following for a comprehensive means of purging all the crappy files macOS deems necessary to liberally spray all over your nice clean non-macOS filesystem (run regularly from cron!):
 ```
 find / -type d -name '.TemporaryItems' -print0 | xargs -r -0 rm
 find / -type f -name '.DS_Store' -print0 | xargs -r -0 rm
